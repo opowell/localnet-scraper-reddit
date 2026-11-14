@@ -1,0 +1,14 @@
+{
+  "scrapers": [
+    {
+      "name": "Reddit",
+      "urlPattern": "reddit.com",
+      "searchUrl": "https://www.reddit.com/search/?q={term}"
+    }
+  ],
+  "file": "reddit.js",
+  "scrapeGaps": {
+    "reddit.com": 10000
+  },
+  "sourcePath": "^/(?:r|u|user)/[^/]+"
+}
