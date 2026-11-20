@@ -25,7 +25,31 @@ function listedPost(element) {
     permalink: element.getAttribute('permalink'),
     url: element.getAttribute('content-href'),
     title: element.getAttribute('post-title'),
+    picture: postPicture(element),
   }
+}
+
+// Where a listing shows a picture of a post, best first: its picture, its video's poster, its gallery's first slide, a
+// link post's thumbnail (old Reddit's too). Not the blurred copy of a picture behind it, nor an avatar or icon.
+const POST_PICTURES = [
+  'img[data-post-media-primary]',
+  'img[slot="poster"]',
+  'gallery-carousel img[src]',
+  'img[src*="preview.redd.it"]:not(.post-background-image-filter)',
+  'img[src*="i.redd.it"]',
+  'img[src*="thumbs.redditmedia.com"]',
+  'a.thumbnail img',
+]
+
+// The address of the picture a listing shows of a post (see POST_PICTURES), if it shows one: a text post has none.
+function postPicture(element) {
+  for (const selector of POST_PICTURES) {
+    const src = element.querySelector(selector)?.getAttribute('src')
+    if (src && /^(?:https?:)?\/\//.test(src)) {
+      return new URL(src, location.origin).href
+    }
+  }
+  return undefined
 }
 
 // Each of these posts once, where it first stands: as a user's own post if they also commented on it.
@@ -49,6 +73,7 @@ function listedPosts(root = document) {
     permalink: thing.getAttribute('data-permalink'),
     url: thing.getAttribute('data-url'),
     title: thing.querySelector('a.title')?.textContent,
+    picture: postPicture(thing),
   }))
   return distinctPosts([...modern, ...old].filter(post => post.permalink))
 }
@@ -81,11 +106,12 @@ async function loadListedPosts() {
 // How strongly a user's page links to a post they commented on, compared to one of their own in its place.
 const COMMENTED_POST_WEIGHT = 0.5
 
-// A listing links to each post's comments, the higher ranked more strongly.
+// A listing links to each post's comments, the higher ranked more strongly, with its title and the picture it shows.
 function listingLinks(posts = listedPosts()) {
   return posts.map((post, rank) => ({
     url: new URL(post.permalink, location.origin).href,
     title: post.title,
+    ...(post.picture ? { picture: post.picture } : {}),
     score: (post.commented ? COMMENTED_POST_WEIGHT : 1) / (1 + rank / 10),
   }))
 }

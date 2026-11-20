@@ -366,6 +366,25 @@ describe('reddit', () => {
     ])
   })
 
+  it('gives each listed post the picture the listing shows of it, but not its blurred backdrop nor an avatar', () => {
+    visit('https://www.reddit.com/r/programming/', `
+      <shreddit-post permalink="/r/programming/comments/a/one/" post-title="One">
+        <img src="https://www.redditstatic.com/avatars/a.png" alt="u/a avatar">
+        <img class="post-background-image-filter" src="https://cf.preview.redd.it/blurred.png">
+        <img data-post-media-primary src="https://preview.redd.it/one.png?width=640">
+      </shreddit-post>
+      <shreddit-post permalink="/r/programming/comments/b/two/" post-title="Two"><img slot="poster" src="https://external-preview.redd.it/two.png"></shreddit-post>
+      <shreddit-post permalink="/r/programming/comments/c/three/" post-title="Three"><p>Text</p></shreddit-post>`)
+    expect(listingLinks().map((l: any) => l.picture)).toEqual(['https://preview.redd.it/one.png?width=640', 'https://external-preview.redd.it/two.png', undefined])
+  })
+
+  it('gives an old Reddit post its thumbnail', () => {
+    visit('https://old.reddit.com/r/programming/', `<div id="siteTable">
+      <div class="thing link" data-permalink="/r/programming/comments/a/one/"><a class="thumbnail"><img src="//b.thumbs.redditmedia.com/one.jpg"></a><a class="title">One</a></div>
+    </div>`)
+    expect(listingLinks()[0].picture).toBe('https://b.thumbs.redditmedia.com/one.jpg')
+  })
+
   it('waits for a listing\'s posts to appear', async () => {
     vi.useFakeTimers()
     try {
