@@ -14,8 +14,20 @@ function isFollowed(post) {
     || post.hasAttribute('is-subscribed')
 }
 
-// The post an element of a listing stands for: its comments page, title and link. A user's comment stands for the post
-// it is on, which its head links to, and says so (commented).
+// What a listing says of a post, as details: its points, author, when it was posted and how many comments it has, as
+// [name, value] pairs so that they keep their order, leaving out what it does not say (a score hidden for a while).
+function postDetails(score, author, time, comments) {
+  const count = value => value == null || value === '' || Number.isNaN(Number(value)) ? null : Number(value)
+  return [
+    ['points', count(score)],
+    ['author', author && author !== '[deleted]' ? { text: author, url: userUrl(author) } : null],
+    ['time', isoTime(time)],
+    ['comments', count(comments)],
+  ].filter(([, value]) => value !== null)
+}
+
+// The post an element of a listing stands for: its comments page, title and link, its picture and details. A user's
+// comment stands for the post it is on, which its head links to, and says so (commented).
 function listedPost(element) {
   if (element.matches('shreddit-profile-comment')) {
     const post = element.querySelector('h2 a[href*="/comments/"]')
@@ -26,6 +38,7 @@ function listedPost(element) {
     url: element.getAttribute('content-href'),
     title: element.getAttribute('post-title'),
     picture: postPicture(element),
+    details: postDetails(element.getAttribute('score'), element.getAttribute('author'), element.getAttribute('created-timestamp'), element.getAttribute('comment-count')),
   }
 }
 
@@ -74,6 +87,12 @@ function listedPosts(root = document) {
     url: thing.getAttribute('data-url'),
     title: thing.querySelector('a.title')?.textContent,
     picture: postPicture(thing),
+    details: postDetails(
+      thing.getAttribute('data-score'),
+      thing.getAttribute('data-author'),
+      thing.querySelector('.tagline time[datetime]')?.getAttribute('datetime'),
+      thing.getAttribute('data-comments-count'),
+    ),
   }))
   return distinctPosts([...modern, ...old].filter(post => post.permalink))
 }
@@ -106,12 +125,14 @@ async function loadListedPosts() {
 // How strongly a user's page links to a post they commented on, compared to one of their own in its place.
 const COMMENTED_POST_WEIGHT = 0.5
 
-// A listing links to each post's comments, the higher ranked more strongly, with its title and the picture it shows.
+// A listing links to each post's comments, the higher ranked more strongly, with its title, the picture it shows and
+// what it says of it (see postDetails).
 function listingLinks(posts = listedPosts()) {
   return posts.map((post, rank) => ({
     url: new URL(post.permalink, location.origin).href,
     title: post.title,
     ...(post.picture ? { picture: post.picture } : {}),
+    ...(post.details?.length ? { details: post.details } : {}),
     score: (post.commented ? COMMENTED_POST_WEIGHT : 1) / (1 + rank / 10),
   }))
 }

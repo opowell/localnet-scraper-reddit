@@ -366,6 +366,19 @@ describe('reddit', () => {
     ])
   })
 
+  it('gives each listed post its points, author, time and comments, modern or old Reddit, but not a deleted author', () => {
+    visit('https://www.reddit.com/r/programming/', `
+      <shreddit-post permalink="/r/programming/comments/a/one/" post-title="One" score="155" author="ann" created-timestamp="2026-11-06T16:49:59.711000+0000" comment-count="52"></shreddit-post>
+      <shreddit-post permalink="/r/programming/comments/b/two/" post-title="Two" author="[deleted]" created-timestamp="2026-11-06T17:00:00.000000+0000" comment-count="0"></shreddit-post>
+      <div id="siteTable"><div class="thing link" data-permalink="/r/programming/comments/c/three/" data-score="7" data-author="bo" data-comments-count="3">
+        <a class="title">Three</a><p class="tagline"><time datetime="2026-11-06T18:00:00+00:00">an hour ago</time></p></div></div>`)
+    expect(listingLinks().map((l: any) => l.details)).toEqual([
+      [['points', 155], ['author', { text: 'ann', url: 'https://www.reddit.com/user/ann/' }], ['time', '2026-11-06T16:49:59.711Z'], ['comments', 52]],
+      [['time', '2026-11-06T17:00:00.000Z'], ['comments', 0]],
+      [['points', 7], ['author', { text: 'bo', url: 'https://www.reddit.com/user/bo/' }], ['time', '2026-11-06T18:00:00.000Z'], ['comments', 3]],
+    ])
+  })
+
   it('gives each listed post the picture the listing shows of it, but not its blurred backdrop nor an avatar', () => {
     visit('https://www.reddit.com/r/programming/', `
       <shreddit-post permalink="/r/programming/comments/a/one/" post-title="One">
